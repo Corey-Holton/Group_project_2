@@ -31,7 +31,7 @@ def print_with_color(message, color=DEFAULT_TEXT_COLOR):
     reset = "\033[0m"
     return f"{bold}{color_code}{message}{reset}"
 
-def print_title(title, text_color=DEFAULT_TEXT_COLOR, border_color=DEFAULT_BORDER_COLOR, closed_corners=False):
+def print_title(title, text_color=DEFAULT_TEXT_COLOR, border_color=DEFAULT_BORDER_COLOR, closed_corners=True):
     """Print a title with specified colors and width."""
     padding = (TOTAL_WIDTH - len(title) - 2) // 2
     border_top = "╔" + "═" * (TOTAL_WIDTH - 2) + "╗"
