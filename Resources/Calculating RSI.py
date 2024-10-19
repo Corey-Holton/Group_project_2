@@ -1,93 +1,57 @@
+# Import dependencies
+import yfinance as yf
 import pandas as pd
-import yfinance as yf
+import numpy as np
+from tqdm import tqdm
 
-# Download stock data (replace 'AAPL' with your preferred ticker)
-data = yf.download('AAPL', start='2023-01-01', end='2024-01-01')
-data['Change'] = data['Close'].diff()
+# Define dates
+start_date = '2000-01-01'
+end_date = '2024-10-14'
 
-# Separate gains and losses
-data['Gain'] = data['Change'].apply(lambda x: x if x > 0 else 0)
-data['Loss'] = data['Change'].apply(lambda x: -x if x < 0 else 0)
+# Get S&P 500 tickers from Wikipedia
+sp500_tickers = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]['Symbol'].tolist()
+# Filter out Class B shares that have a '.B' in the ticker name
+sp500_tickers = [ticker for ticker in sp500_tickers if '.B' not in ticker]
+print(f"Total S&P 500 tickers: {len(sp500_tickers)}")
 
-# Calculate average gains and losses
-window_length = 14
-data['AvgGain'] = data['Gain'].rolling(window=window_length).mean()
-data['AvgLoss'] = data['Loss'].rolling(window=window_length).mean()
+# Download historical prices for the list of tickers
+historical_prices = yf.download(sp500_tickers, start=start_date, end=end_date)['Adj Close']
+# Fill NaN values with 0
+historical_prices.fillna(0, inplace=True)
+print(f"Successfully downloaded tickers: {len(historical_prices.columns)} out of {len(sp500_tickers)}")
 
-# Calculate RS and RSI
-data['RS'] = data['AvgGain'] / data['AvgLoss']
-data['RSI'] = 100 - (100 / (1 + data['RS']))
+# Function to calculate RSI
+def calculate_rsi(historical_prices, window=14):
+    # Ensure calculations are performed on the 'Adj Close' column
+    delta = historical_prices.diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    avg_gain = gain.rolling(window=window, min_periods=1).mean()
+    avg_loss = loss.rolling(window=window, min_periods=1).mean()
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    return rsi
 
-# Display the last few rows
-print(data[['Close', 'RSI']].tail())
+# Calculate RSI for all tickers
+rsis = []
+for ticker in tqdm(sp500_tickers):
+    try:
+        ticker_data = yf.download(ticker, start=start_date, end=end_date)
+        ticker_data['RSI'] = calculate_rsi(ticker_data['Adj Close'])
+        ticker_data['Ticker'] = ticker
+        rsis.append(ticker_data)
+    except Exception as e:
+        print(f"Error processing {ticker}: {e}")
 
-import yfinance as yf
-import matplotlib.pyplot as plt
-from datetime import datetime
+# Concatenate all the data into a single DataFrame
+rsi_df = pd.concat(rsis)
 
-# Load the data into a dataframe
-symbol = yf.Ticker('BTC-USD')
-df_btc = symbol.history(interval="1d",period="max")
+# Select and rename relevant columns
+rsi_df = rsi_df.reset_index()[['Date', 'Ticker', 'Adj Close', 'RSI']]
+rsi_df.rename(columns={'Adj Close': 'Adjusted Close'}, inplace=True)
 
-# Filter the data by date
-df_btc = df_btc[df_btc.index > datetime(2020,1,1)]
-df_btc = df_btc[df_btc.index < datetime(2021,9,1)]
+# Display the DataFrame
+print(rsi_df.head())
 
-# Print the result
-print(df_btc)
-
-# Delete unnecessary columns
-del df_btc["Dividends"]
-del df_btc["Stock Splits"]
-
-change = df_btc["Close"].diff()
-change.dropna(inplace=True)
-
-# Create two copies of the Closing price Series
-change_up = change.copy()
-change_down = change.copy()
-
-# 
-change_up[change_up<0] = 0
-change_down[change_down>0] = 0
-
-# Verify that we did not make any mistakes
-change.equals(change_up+change_down)
-
-# Calculate the rolling average of average up and average down
-avg_up = change_up.rolling(14).mean()
-avg_down = change_down.rolling(14).mean().abs()
-
-#Calculate RSI
-rsi = 100 * avg_up / (avg_up + avg_down)
-
-# Take a look at the 20 oldest datapoints
-rsi.head(20)
-
-# Set the theme of our chart
-plt.style.use('fivethirtyeight')
-
-# Make our resulting figure much bigger
-plt.rcParams['figure.figsize'] = (20, 20)
-
-# Create two charts on the same figure.
-ax1 = plt.subplot2grid((10,1), (0,0), rowspan = 4, colspan = 1)
-ax2 = plt.subplot2grid((10,1), (5,0), rowspan = 4, colspan = 1)
-
-# First chart:
-# Plot the closing price on the first chart
-ax1.plot(df_btc['Close'], linewidth=2)
-ax1.set_title('Bitcoin Close Price')
-
-# Second chart
-# Plot the RSI
-ax2.set_title('Relative Strength Index')
-ax2.plot(rsi, color='orange', linewidth=1)
-# Add two horizontal lines, signalling the buy and sell ranges.
-# Oversold
-ax2.axhline(30, linestyle='--', linewidth=1.5, color='green')
-# Overbought
-ax2.axhline(70, linestyle='--', linewidth=1.5, color='red')
-
-# Display the charts
-plt.show()
+# Save to CSV
+rsi_df.to_csv('sp500_rsi_data.csv', index=False)
