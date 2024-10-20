@@ -6,4 +6,5 @@ predictions, models, and preprocessing functions.
 
 from .indicators import calculate_bollinger_bands, calculate_rsi
 from .print_utils import print_title, print_label, print_footer
-from .data_utils import load_data, save_data
+from .trading_signals import generate_trading_signals
+from .data_utils import save_data
