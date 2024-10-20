@@ -1,58 +1,100 @@
 import numpy as np
 import pandas as pd
 
-def predict_signal(today_to_tomorrow, yesterday_to_today, prev_action):
+
+def calculate_signals(today_to_tomorrow, yesterday_to_today):
     """
-    Predict the trading signal based on the difference between today's and tomorrow's prices
-    and yesterday's and today's prices.
+    Calculate the primary trading signals based on price differences.
 
     Parameters:
-    today_to_tomorrow (float): The difference between today's and tomorrow's prices.
-    yesterday_to_today (float): The difference between yesterday's and today's prices.
-    prev_action (str): The previous trading action.
+    today_to_tomorrow (pd.Series): The difference between today's and tomorrow's prices.
+    yesterday_to_today (pd.Series): The difference between yesterday's and today's prices.
 
     Returns:
-    str: The trading signal, which can be one of the following: [buy, hold, short, sell].
+    pd.Series: The initial trading signals [excluding neutral cases (where both differences are zero)].
     """
+    # Define conditions and their corresponding actions
+    conditions = [
+        (today_to_tomorrow == 1) & (yesterday_to_today == -1),  # Buy signal: rising tomorrow, falling today
+        (today_to_tomorrow == 1) & (yesterday_to_today == 1),   # Hold signal: rising tomorrow and today
+        (today_to_tomorrow == 0) & (yesterday_to_today == 1),   # Hold signal: no change tomorrow, rising today
+        (today_to_tomorrow == 1) & (yesterday_to_today == 0),   # Hold signal: rising tomorrow, no change today
+        (today_to_tomorrow == -1) & (yesterday_to_today == 1),  # Sell signal: falling tomorrow, rising today
+        (today_to_tomorrow == -1) & (yesterday_to_today == -1), # Short signal: falling tomorrow and today
+        (today_to_tomorrow == 0) & (yesterday_to_today == -1),  # Short signal: no change tomorrow, falling today
+        (today_to_tomorrow == -1) & (yesterday_to_today == 0)   # Short signal: falling tomorrow, no change today
+    ]
 
-    # If either `today_to_tomorrow` or `yesterday_to_today` difference is NaN, return NA
-    if pd.isna(today_to_tomorrow) or pd.isna(yesterday_to_today):
-        return pd.NA
-    
-    # Define a signal map to determine the action based on the difference values
-    signal_map = {
-        (1, -1): "buy",    # Buy signal: rising tomorrow, falling today
-        (1, 1): "hold",    # Hold signal: rising tomorrow and today
-        (0, 1): "hold",    # Hold signal: no change tomorrow, rising today
-        (1, 0): "hold",    # Hold signal: rising tomorrow, no change today
-        (-1, 1): "sell",   # Sell signal: falling tomorrow, rising today
-        (-1, -1): "short", # Short signal: falling tomorrow and today
-        (0, -1): "short",  # Short signal: no change tomorrow, falling today
-        (-1, 0): "short",  # Short signal: falling tomorrow, no change today
-    }
+    choices = ["buy", "hold", "hold", "hold", "sell", "short", "short", "short"]
 
-    # If the difference values are in the signal map...
-    # Return the corresponding signal from the map: [buy, hold, short, sell]
-    if (today_to_tomorrow, yesterday_to_today) in signal_map:
-        return signal_map[(today_to_tomorrow, yesterday_to_today)]
-    
-    # If the difference values are both zero...
-    # Handle neutral signals (when both today-to-tomorrow and yesterday-to-today) are zero
-    if (today_to_tomorrow, yesterday_to_today) == (0, 0):
-        # If there is a previous action...
-        # return hold if the previous action was `buy` or `hold`, otherwise return `short`
-        if not pd.isna(prev_action):
-            return "hold" if prev_action in ["buy", "hold"] else "short"
-        return pd.NA
+    # Vectorized signal assignment based on conditions
+    # Vectorized means that the operation is applied to the entire Series at once rather than row by row
+    initial_actions = pd.Series(
+        np.select(
+            conditions,     # Conditions to check
+            choices,        # Actions to take if the condition is true
+            default=pd.NA   # Default action if no condition is true (Not Available)
+        ),
+        index=today_to_tomorrow.index
+    )
 
-    # Return NA for any other cases
-    return pd.NA
+    # Return the initial signals (without handling neutral cases)
+    return initial_actions
 
 
-def generate_trading_signals (df, ticker):
+def handle_neutral_cases(actions, today_to_tomorrow, yesterday_to_today):
     """
-    Generate trading signals based on the difference between today's and tomorrow's prices
-    and yesterday's and today's prices.
+    Handle neutral cases where both today-to-tomorrow and yesterday-to-today differences are zero.
+    This function updates the action based on the previous action.
+
+    Parameters:
+    actions (pd.Series): The current set of actions.
+    today_to_tomorrow (pd.Series): The difference between today's and tomorrow's prices.
+    yesterday_to_today (pd.Series): The difference between yesterday's and today's prices.
+
+    Returns:
+    pd.Series: The updated actions with neutral cases handled.
+    """
+    # Mask for neutral cases (both differences are zero)
+    # A mask is a boolean array that can be used to filter rows based on a condition
+    # In this case, we want to filter rows where both differences are zero
+    neutral_mask = (today_to_tomorrow == 0) & (yesterday_to_today == 0)
+
+    # Shift the actions Series to get the previous action for each row
+    # This is necessary to determine the action for the neutral cases
+    prev_actions = actions.shift(1)
+
+    # Update neutral cases based on previous action
+    # Syntax: `np.where(condition, value_if_true, value_if_false)``
+    
+    actions.loc[neutral_mask] = np.where(
+
+        # Condition (Outer `where`): Where previous action is buy or hold
+        prev_actions.loc[neutral_mask].isin(["buy", "hold"]), 
+        
+        # Value if true: "hold"
+        "hold", 
+
+        # Value if false: Check if previous action is short or sell
+        np.where( 
+            # Condition (Inner `where`): Where previous action is short or sell
+            prev_actions.loc[neutral_mask].isin(["short", "sell"]),
+
+            # Value if true: "short"
+            "short",
+
+            # Value if false: Not Available (NA)
+            pd.NA
+        )
+    )
+
+    # Return the updated actions
+    return actions
+
+
+def generate_trading_signals(df, ticker):
+    """
+    Generate trading signals by first calculating primary signals and then handling neutral cases.
 
     Parameters:
     df (pd.DataFrame): The input DataFrame containing the price data.
@@ -61,26 +103,19 @@ def generate_trading_signals (df, ticker):
     Returns:
     pd.Series: The trading signals for the input DataFrame.
     """
-    
+
+    # Shift the data to get the price differences
     next_day = df[ticker].shift(-1)  # Next day's price data
-    prev_day = df[ticker].shift(1)  # Previous day's price data
+    prev_day = df[ticker].shift(1)   # Previous day's price data
 
     # Calculate the difference between today's and tomorrow's prices and yesterday's and today's prices
-    # (+1: rise, -1: fall, 0: no change)
     today_to_tomorrow = np.sign(next_day - df[ticker])
     yesterday_to_today = np.sign(df[ticker] - prev_day)
 
-    # Initialize the action column with NA
-    # This column will store the action signals for each day: [buy, hold, short, sell]
-    actions = pd.Series(
-        pd.NA,
-        index=df.index
-    )
+    # Part 1: Calculate primary signals
+    actions = calculate_signals(today_to_tomorrow, yesterday_to_today)
 
-    # Iterate over the rows and apply the predict_signal function
-    for i in range(1, len(df)):
-        prev_action = actions.iloc[i - 1] if i > 0 else pd.NA
-        actions.iloc[i] = predict_signal(
-            today_to_tomorrow.iloc[i], yesterday_to_today.iloc[i], prev_action)
+    # Part 2: Handle neutral cases based on previous action (Where both differences are zero)
+    actions = handle_neutral_cases(actions, today_to_tomorrow, yesterday_to_today)
 
     return actions
