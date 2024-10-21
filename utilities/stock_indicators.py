@@ -1,3 +1,5 @@
+import numpy as np
+
 # Define RSI function
 def calculate_rsi(data, window=14):
     delta = data.diff()
