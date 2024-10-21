@@ -92,25 +92,24 @@ def handle_neutral_cases(actions, today_to_tomorrow, yesterday_to_today):
     return actions
 
 
-def generate_trading_signals(df, ticker):
+def generate_trading_signals(data):
     """
     Generate trading signals by first calculating primary signals and then handling neutral cases.
 
     Parameters:
-    df (pd.DataFrame): The input DataFrame containing the price data.
-    ticker (str): The column name for which to generate the trading signals.
+    data (pd.DataFrame): The input DataFrame with adjusted closing prices.
 
     Returns:
     pd.Series: The trading signals for the input DataFrame.
     """
 
     # Shift the data to get the price differences
-    next_day = df[ticker].shift(-1)  # Next day's price data
-    prev_day = df[ticker].shift(1)   # Previous day's price data
+    next_day = data.shift(-1)  # Next day's price data
+    prev_day = data.shift(1)   # Previous day's price data
 
     # Calculate the difference between today's and tomorrow's prices and yesterday's and today's prices
-    today_to_tomorrow = np.sign(next_day - df[ticker])
-    yesterday_to_today = np.sign(df[ticker] - prev_day)
+    today_to_tomorrow = np.sign(next_day - data)
+    yesterday_to_today = np.sign(data - prev_day)
 
     # Part 1: Calculate primary signals
     actions = calculate_signals(today_to_tomorrow, yesterday_to_today)
