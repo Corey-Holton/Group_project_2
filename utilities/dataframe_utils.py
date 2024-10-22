@@ -1,9 +1,8 @@
-import pandas as pd
-from pathlib import Path
-from datetime import datetime
+from utilities.print_utils import print_title, print_label
 from zipfile import ZipFile, ZIP_DEFLATED
+from pathlib import Path
+import pandas as pd
 import io
-from utilities.print_utils import print_title, print_label, print_footer
 
 # Function to save the DataFrames to ZIP files
 def save_data(df, file_path):
@@ -64,9 +63,11 @@ def load_data(zip_file_path):
     
     # Open the zip file and read the CSV file inside it
     with ZipFile(zip_file_path, 'r') as zipf:
-        # Assuming there is only one file in the zip archive
+        
+        # Get the name of the CSV file inside the zip
         csv_file_name = zipf.namelist()[0]
         with zipf.open(csv_file_name) as csv_file:
+
             # Load the CSV file into a DataFrame
             df = pd.read_csv(csv_file)
     
