@@ -22,5 +22,5 @@ def calculate_bollinger_bands(data, window=20):
 
 def calculate_daily_volatility(prices):
     returns = prices.pct_change(fill_method=None)
-    volatility = returns.rolling(window=21).std() * np.sqrt(252)  # Annualized daily volatility
+    volatility = returns.rolling(window=21).std() # 21-day rolling volatility
     return volatility
