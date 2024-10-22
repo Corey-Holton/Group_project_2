@@ -1,33 +1,79 @@
 import pandas as pd
 from pathlib import Path
 from datetime import datetime
+from zipfile import ZipFile, ZIP_DEFLATED
+import io
 from utilities.print_utils import print_title, print_label, print_footer
 
-# Function to save the DataFrames to CSV files
+# Function to save the DataFrames to ZIP files
 def save_data(df, file_path):
     """ 
-    Save a DataFrame to a CSV file at the specified file path.
+    Save a DataFrame to a ZIP file with a CSV file inside.
 
     Parameters:
     - df: DataFrame to save
-    - file_path: Path to save the CSV file
+    - file_path: Path to save the zip file
     """
 
-    # Ensure the file path is a Path object
-    file_path = Path(file_path)
+    # Ensure the file path is a Path object and set the suffix to .zip
+    file_path = Path(file_path).with_suffix('.zip')
     
     # Check if the parent directory exists
     if not file_path.parent.exists():
         print_title(f"Error: The directory `{file_path.parent}` does not exist.", "bright_red", "red")
         return
     
+    # Check if the zip file already exists and remove it if it does
     if file_path.exists():
         print_title(f"File `{file_path.name}` already exists. Overwriting file.", "bright_magenta", "magenta")
         file_path.unlink()
     
-    # Save the DataFrame to the specified file path
-    df.to_csv(file_path, index=False)
-    print_title(f"File saved as `{file_path.name}`", "bright_green", "green")
+    # Save the DataFrame to a CSV file inside the zip file
+    with ZipFile(file_path, 'w', ZIP_DEFLATED) as zipf:
+        # Create a buffer to hold the CSV data
+        csv_buffer = io.StringIO()
+        
+        # Write the DataFrame to the buffer as CSV
+        df.to_csv(csv_buffer, index=False)
+        
+        # Write the CSV data from the buffer to the zip file
+        zipf.writestr(file_path.stem + '.csv', csv_buffer.getvalue())
+    
+    # Print a success message
+    print_title(f"File saved and zipped as `{file_path.name}`", "bright_green", "green")
+
+# Function to load the DataFrames from ZIP files
+def load_data(zip_file_path):
+    """
+    Load a DataFrame from a CSV file inside a zip file.
+
+    Parameters:
+    - zip_file_path: Path to the zip file containing the CSV
+
+    Returns:
+    - DataFrame loaded from the CSV file
+    """
+    
+    # Ensure the file path is a Path object and set the suffix to .zip
+    zip_file_path = Path(zip_file_path).with_suffix('.zip')
+    
+    # Check if the zip file exists
+    if not zip_file_path.exists():
+        print_title(f"Error: The file `{zip_file_path}` does not exist.", "bright_red", "red")
+        return None
+    
+    # Open the zip file and read the CSV file inside it
+    with ZipFile(zip_file_path, 'r') as zipf:
+        # Assuming there is only one file in the zip archive
+        csv_file_name = zipf.namelist()[0]
+        with zipf.open(csv_file_name) as csv_file:
+            # Load the CSV file into a DataFrame
+            df = pd.read_csv(csv_file)
+    
+    # Print a success message
+    print_title(f"File `{csv_file_name}` loaded from `{zip_file_path.name}`", "bright_green", "green")
+    
+    return df
 
 def print_dataframe_report(df, df_name):
     """ 
