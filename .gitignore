@@ -176,6 +176,7 @@ cython_debug/
 # ║       Large CSV Files (Raw Data)       ║
 # ╚════════════════════════════════════════╝
 sp500_adj_close_2000-01-01_2024-10-14.csv
+sp500_adj_close_raw.csv
 
 # ╔════════════════════════════════════════╗
 # ║       Large CSV Files (Cleaned)        ║
