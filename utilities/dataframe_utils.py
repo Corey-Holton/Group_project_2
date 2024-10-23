@@ -51,10 +51,10 @@ def save_data(df, file_path):
 # Function to load the DataFrames from ZIP files
 def load_data(zip_file_path):
     """
-    Load a DataFrame from a CSV file inside a zip file.
+    Load a DataFrame from a CSV file inside a zip file that has been compressed with BZ2.
 
     Parameters:
-    - zip_file_path: Path to the zip file containing the CSV
+    - zip_file_path: Path to the zip file containing the CSV compressed with BZ2
 
     Returns:
     - DataFrame loaded from the CSV file
@@ -68,15 +68,18 @@ def load_data(zip_file_path):
         print_title(f"Error: The file `{zip_file_path}` does not exist.", "bright_red", "red")
         return None
     
-    # Open the zip file and read the CSV file inside it using BZIP2 compression
+    # Open the zip file and read the BZ2-compressed CSV file inside it
     with ZipFile(zip_file_path, 'r') as zipf:
-        
-        # Get the name of the CSV file inside the zip
+        # Get the name of the compressed CSV file inside the zip
         csv_file_name = zipf.namelist()[0]
-        with zipf.open(csv_file_name) as csv_file:
-
-            # Load the CSV file into a DataFrame
-            df = pd.read_csv(csv_file)
+        
+        # Open the BZ2-compressed file within the ZIP
+        with zipf.open(csv_file_name) as compressed_file:
+            # Decompress the BZ2 file
+            decompressed_data = bz2.decompress(compressed_file.read()).decode('utf-8')
+            
+            # Load the decompressed CSV data into a DataFrame
+            df = pd.read_csv(io.StringIO(decompressed_data))
     
     # Print a success message
     print_title(f"File `{csv_file_name}` loaded from `{zip_file_path.name}`", "bright_cyan", "cyan")
