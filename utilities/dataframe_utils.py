@@ -1,13 +1,17 @@
-from utilities.print_utils import print_title, print_label
-from zipfile import ZipFile, ZIP_DEFLATED
-from pathlib import Path
 import pandas as pd
-import io
+from pathlib import Path
+
+from zipfile import ZipFile, ZIP_DEFLATED # ZIP file operations / Used for saving DataFrames to ZIP files
+import io # String IO buffer / Used for in-memory file operations
+import bz2 # BZIP2 compression / Used for compressing the CSV data
+
+# Import in-house utilities
+from utilities.print_utils import print_title, print_label
 
 # Function to save the DataFrames to ZIP files
 def save_data(df, file_path):
     """ 
-    Save a DataFrame to a ZIP file with a CSV file inside.
+    Save a DataFrame to a ZIP file with a CSV file inside using BZIP2 compression.
 
     Parameters:
     - df: DataFrame to save
@@ -27,16 +31,19 @@ def save_data(df, file_path):
         print_title(f"File `{file_path.name}` already exists. Overwriting file.", "bright_magenta", "magenta")
         file_path.unlink()
     
-    # Save the DataFrame to a CSV file inside the zip file
-    with ZipFile(file_path, 'w', ZIP_DEFLATED) as zipf:
+    # Save the DataFrame to a CSV file inside the zip file using BZIP2 compression
+    with ZipFile(file_path, 'w', compression=ZIP_DEFLATED) as zipf:
         # Create a buffer to hold the CSV data
         csv_buffer = io.StringIO()
         
         # Write the DataFrame to the buffer as CSV
         df.to_csv(csv_buffer, index=False)
+
+        # Compress the CSV data using BZ2
+        compressed_data = bz2.compress(csv_buffer.getvalue().encode('utf-8'))
         
-        # Write the CSV data from the buffer to the zip file
-        zipf.writestr(file_path.stem + '.csv', csv_buffer.getvalue())
+        # Write the compressed CSV data to the zip file
+        zipf.writestr(file_path.stem + '.csv.bz2', compressed_data)
     
     # Print a success message
     print_title(f"File saved and zipped as `{file_path.name}`", "bright_green", "green")
@@ -61,7 +68,7 @@ def load_data(zip_file_path):
         print_title(f"Error: The file `{zip_file_path}` does not exist.", "bright_red", "red")
         return None
     
-    # Open the zip file and read the CSV file inside it
+    # Open the zip file and read the CSV file inside it using BZIP2 compression
     with ZipFile(zip_file_path, 'r') as zipf:
         
         # Get the name of the CSV file inside the zip
@@ -72,7 +79,7 @@ def load_data(zip_file_path):
             df = pd.read_csv(csv_file)
     
     # Print a success message
-    print_title(f"File `{csv_file_name}` loaded from `{zip_file_path.name}`", "bright_green", "green")
+    print_title(f"File `{csv_file_name}` loaded from `{zip_file_path.name}`", "bright_cyan", "cyan")
     
     return df
 
