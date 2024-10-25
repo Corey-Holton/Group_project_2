@@ -5,8 +5,19 @@ from zipfile import ZipFile, ZIP_DEFLATED # ZIP file operations / Used for savin
 import io # String IO buffer / Used for in-memory file operations
 import bz2 # BZIP2 compression / Used for compressing the CSV data
 
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
 # Import in-house utilities
-from utilities.print_utils import print_title, print_label
+if current_dir in sys.path:
+    # If current directory is in sys.path, use relative import
+    from print_utils import print_title, print_label
+else:
+    # Otherwise, use absolute import
+    from utilities.print_utils import print_title, print_label
 
 # Function to save the DataFrames to ZIP files
 def save_data(df, file_path):

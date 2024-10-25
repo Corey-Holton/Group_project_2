@@ -1,6 +1,22 @@
 import pandas as pd
 from datetime import datetime
 
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+
+# Import in-house utilities
+if current_dir in sys.path:
+    # If current directory is in sys.path, use relative import
+    from print_utils import print_title, print_label
+    from dataframe_utils import load_data
+else:
+    # Otherwise, use absolute import
+    from utilities.print_utils import print_title, print_label
+    from utilities.dataframe_utils import load_data
+
 def temporal_train_test_split(df, date_column, target_column, cutoff_date, feature_columns=None):
   """
   Split a dataset into training and testing sets based on a cutoff date,
@@ -90,38 +106,65 @@ if __name__ == "__main__":
     'target': range(200, 300)
   })
   
-  X_train, X_test, y_train, y_test = temporal_train_test_split(
-    valid_df,
-    date_column='date',
-    target_column='target',
-    cutoff_date='2023-03-15'
-  )
-  
-  print(f"X_train shape: {X_train.shape}")
-  print(f"X_test shape: {X_test.shape}")
-  print(f"y_train shape: {y_train.shape}")
-  print(f"y_test shape: {y_test.shape}")
-  
-  # Example usage with specific feature columns
-  X_train, X_test, y_train, y_test = temporal_train_test_split(
-    valid_df,
-    date_column='date',
-    target_column='target',
-    cutoff_date='2023-03-15',
-    feature_columns=['feature1']
-  )
-  
-  print("\nWith specific feature selection:")
-  print(f"X_train shape: {X_train.shape}")
-  print(f"X_test shape: {X_test.shape}")
-  
-  invalid_df = pd.DataFrame({
-    'date': ['not a date', 'also not a date'],
-    'feature1': [1, 2],
-    'target': [3, 4]
-  })
-  
-  try:
-    temporal_train_test_split(invalid_df, 'date', 'target', '2023-03-15')
-  except ValueError as e:
-    print(f"\nExpected error with invalid dates: {str(e)}")
+  test_cases = [
+    {
+      "case": "Real Data",
+      "date_column": 'Date',
+      "target_column": 'Return',
+      "cutoff_date": '2023-01-01',
+      "feature_columns": None,
+      "df": load_data("data/raw_data/sp500_adj_close_raw")
+    },
+    {
+      "case": "Valid Sample Data",
+      "date_column": 'date',
+      "target_column": 'target',
+      "cutoff_date": '2023-01-02',
+      "feature_columns": None,
+      "df": valid_df
+    },
+    {
+      "case": "Feature Columns",
+      "date_column": 'date',
+      "target_column": 'target',
+      "cutoff_date": '2023-03-02',
+      "feature_columns": ["feature1"],
+      "df": valid_df
+    },
+    {
+      "case": "Invalid Dates",
+      "date_column": 'date',
+      "target_column": 'target',
+      "cutoff_date": '2023-03-15',
+      "feature_columns": None,
+      "df": pd.DataFrame({
+        'date': ['not a date', 'also not a date'],
+        'feature1': [1, 2],
+        'target': [3, 4]
+      })
+    }
+  ]
+
+  for test_case in test_cases:
+    print_title(f"Test Case: {test_case['case']}")
+    try:
+      X_train, X_test, y_train, y_test = temporal_train_test_split(
+        test_case['df'],
+        test_case['date_column'],
+        test_case['target_column'],
+        test_case['cutoff_date'],
+        feature_columns=test_case['feature_columns']
+      )
+      
+      # Convert shape tuples to strings before printing
+      print_label("X_train Shape", f"{X_train.shape[0]} rows, {X_train.shape[1]} columns")
+      print_label("X_test Shape", f"{X_test.shape[0]} rows, {X_test.shape[1]} columns")
+      print_label("y_train Shape", f"{y_train.shape[0]} rows")
+      print_label("y_test Shape", f"{y_test.shape[0]} rows")
+    except Exception as e:
+      if test_case['case'] == "Invalid Dates":
+        print_title("Expected Error:", "bright_green", "green")
+        print_label("Error Message", str(e))
+      else:
+        raise e
+    print()
