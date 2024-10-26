@@ -179,6 +179,7 @@ sp500_adj_close_2000-01-01_2024-10-14.csv
 sp500_adj_close_raw.csv
 XGB_predict.zip
 lin_reg_predict.zip
+ran_for_predict.zip
 
 # ╔════════════════════════════════════════╗
 # ║       Large CSV Files (Cleaned)        ║
