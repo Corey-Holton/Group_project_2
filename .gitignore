@@ -175,13 +175,13 @@ cython_debug/
 # ╔════════════════════════════════════════╗
 # ║       Large CSV Files (Raw Data)       ║
 # ╚════════════════════════════════════════╝
-sp500_adj_close_2000-01-01_2024-10-14.csv
-sp500_adj_close_raw.csv
-XGB_predict.zip
-lin_reg_predict.zip
-ran_for_predict.zip
-test_w_na.csv
 
+clf_log_regression.pkl
+clf_random_forest_v1.pkl
+clf_XGB_v1.pkl
+logistic_regression_v1.pkl
+reg_linear_v1.pkl
+reg_XGB_v1.pkl
 # ╔════════════════════════════════════════╗
 # ║       Large CSV Files (Cleaned)        ║
 # ╚════════════════════════════════════════╝
