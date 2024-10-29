@@ -182,6 +182,7 @@ clf_XGB_v1.pkl
 logistic_regression_v1.pkl
 reg_linear_v1.pkl
 reg_XGB_v1.pkl
+random_forest_classifier_v2.pkl
 # ╔════════════════════════════════════════╗
 # ║       Large CSV Files (Cleaned)        ║
 # ╚════════════════════════════════════════╝
