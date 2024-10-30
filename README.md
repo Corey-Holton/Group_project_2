@@ -114,3 +114,17 @@ Reports generated from model evaluation and predictions are saved in the `report
 - Edwin Lovera ([@ed-lovera](https://github.com/ed-lovera))
 - Vickram Dass ([@DassV24](https://github.com/DassV24))
 - Montre Davis ([@tredavis](https://github.com/tredavis))
+
+
+## Data Sources
+
+This project utilizes financial data from **Yahoo Finance**, accessed via the `yfinance` library. We acknowledge Yahoo Finance as the primary source of our historical stock data.
+
+## .gitignore
+
+A `.gitignore` file is included in this project to exclude unnecessary files and sensitive information from version control. This includes, but is not limited to:
+
+- Temporary and system files
+- Jupyter notebook checkpoints
+- Model and data artifacts
+- Configuration files containing sensitive information
