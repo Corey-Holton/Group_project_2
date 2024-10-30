@@ -12,3 +12,4 @@ from .stock_trading_signals import generate_trading_signals
 from .temporal_train_test_split import temporal_train_test_split
 from .statistical_analysis import calc_vif, calc_p_values, calc_correlation, highlight_vif, highlight_p_values, evaluate_regression_model, evaluate_cross_validation, evaluate_classifier_model
 from .christian_utils import split_dataset_by_date, clean_historical_data, check_tickers_for_missing_values
+from .stock_features import generate_directions
