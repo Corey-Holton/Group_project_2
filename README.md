@@ -66,7 +66,7 @@ pip install -r requirements.txt
 
 The main Jupyter notebooks in this project include:
 
-- `Main_Stock_Analysis.ipynb`: Overall analysis and workflow for stock data.
+- `main.ipynb`: Overall analysis and workflow for stock data.
 - `regression_classification_comparison.ipynb`: Comparison of regression and classification models for stock predictions.
 - `regressions.ipynb`: Notebooks dedicated to regression analysis with different models (Linear, Random Forest, XGBoost).
 - `clf_log_reg.ipynb`, `clf_random_forest_v1.ipynb`, `clf_random_forest_v2.ipynb`, `clf_XGBoost.ipynb`: Model-specific notebooks for training and evaluating classification models.
